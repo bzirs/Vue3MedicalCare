@@ -12,7 +12,8 @@ export default defineConfig({
     vue(),
     vueJsx(),
     Components({
-      resolvers: [VantResolver()]
+      // dts: false,
+      resolvers: [VantResolver({ importStyle: true })]
     })
   ],
   resolve: {

@@ -1,6 +1,7 @@
 import { createApp } from 'vue'
 
-import App from './App.vue'
+// import App from './App.vue'
+import Index from './Index.vue'
 import router from './router'
 
 // import './assets/main.css'
@@ -11,7 +12,7 @@ import '@/styles/main.scss'
 
 import './utils/vant'
 
-const app = createApp(App)
+const app = createApp(Index)
 
 app.use(store)
 app.use(router)
