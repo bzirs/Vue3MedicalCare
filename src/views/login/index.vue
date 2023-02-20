@@ -1,14 +1,19 @@
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onUnmounted } from 'vue'
 import { mobileRules, passwordRules } from '@/utils/rules'
-import { showToast } from 'vant'
-import type { ILoginFormData } from '@/types/login'
-import { toPLogin, toCLogin } from '@/services/modules/login'
+import { showToast, showSuccessToast, showFailToast } from 'vant'
+import type { ILoginFormData } from '@/types/user'
+import { toPLogin, toCLogin, sendMobileCode } from '@/services/modules/user'
 import { useUser } from '@/stores/export.global'
+import { useRoute, useRouter } from 'vue-router'
+
+
+const router = useRouter()
+const route = useRoute()
 
 // 表单数据
 const formData = ref<ILoginFormData>({
-  mobile: 13230000066,
+  mobile: '13230000066',
   password: 'abc12345'
 })
 
@@ -21,6 +26,9 @@ const agree = ref(false)
 // 登录选项
 const passwdLogin = ref(true)
 
+// 倒计时
+const time = ref(0)
+
 const handleSwitchLogin = () => {
 
   passwdLogin.value = !passwdLogin.value
@@ -28,15 +36,54 @@ const handleSwitchLogin = () => {
 
 }
 
+let timeId: number
+const handleSend = async () => {
+  // 已经倒计时time的值大于0，此时不能发送验证码
+  try {
+    if (time.value > 0) return
+    const { data: { code } } = await sendMobileCode(formData.value.mobile, 'login')
+
+    formData.value.code = code
+
+    showSuccessToast('发送成功')
+
+    time.value = 60
+    // 倒计时
+    clearInterval(timeId)
+    timeId = window.setInterval(() => {
+      time.value--
+      if (time.value <= 0) window.clearInterval(timeId)
+    }, 1000)
+  } catch ({ message }) {
+    showFailToast(message as string)
+
+  }
+}
+
+onUnmounted(() => {
+  window.clearInterval(timeId)
+})
+
 const handleSubmit = async () => {
-  console.log('登录');
-
-  if (!agree.value) return showToast('请勾选我已同意')
-  const { data } = await (passwdLogin ? toPLogin(formData.value) : toCLogin(formData.value))
-
-  userStore.setUser(data)
+  try {
 
 
+    if (!agree.value) return showToast('请勾选我已同意')
+
+    if (!passwdLogin.value) delete formData.value.password
+
+
+    const { data } = await (passwdLogin.value ? toPLogin(formData.value) : toCLogin(formData.value))
+
+    userStore.setUser(data)
+    showSuccessToast('登录成功')
+
+    router.push((route.query.returnUrl as string) || '/')
+
+  } catch (error) {
+    console.log(error);
+
+  }
 
 }
 
@@ -57,12 +104,14 @@ const loginValue = computed(() => passwdLogin.value ? '短信验证码' : '输�
     </div>
     <!-- 表单 -->
     <van-form class="van-form" autocomplete="off" @submit="handleSubmit">
-      <van-field placeholder="请输入手机号" v-model="formData.mobile" :rules="mobileRules" type="tel"></van-field>
+      <van-field placeholder="请输入手机号" name="mobile" v-model="formData.mobile" :rules="mobileRules" type="tel"></van-field>
       <van-field v-if="passwdLogin" placeholder="请输入密码" v-model="formData.password" :rules="passwordRules"
         type="password"></van-field>
       <van-field v-else placeholder="短信验证码" v-model="formData.code">
         <template #button>
-          <span class="btn-send">发送验证码</span>
+          <span class="btn-send" :class="{ active: time > 0 }" @click="handleSend">
+            {{ time > 0 ? `${time}s后再次发送` : '发送验证码' }}
+          </span>
         </template>
       </van-field>
       <div class="cp-cell">
