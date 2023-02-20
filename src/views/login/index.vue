@@ -2,16 +2,18 @@
 import { ref, reactive, computed } from 'vue'
 import { mobileRules, passwordRules } from '@/utils/rules'
 import { showToast } from 'vant'
+import type { ILoginFormData } from '@/types/login'
+import { toPLogin, toCLogin } from '@/services/modules/login'
+import { useUser } from '@/stores/export.global'
 
 // 表单数据
-const formData = ref<{
-  mobile: number,
-  password?: string,
-  code?: number
-}>({
+const formData = ref<ILoginFormData>({
   mobile: 13230000066,
   password: 'abc12345'
 })
+
+// 用户store
+const userStore = useUser()
 
 // 是否同意协议
 const agree = ref(false)
@@ -26,10 +28,16 @@ const handleSwitchLogin = () => {
 
 }
 
-const handleSubmit = () => {
+const handleSubmit = async () => {
   console.log('登录');
 
   if (!agree.value) return showToast('请勾选我已同意')
+  const { data } = await (passwdLogin ? toPLogin(formData.value) : toCLogin(formData.value))
+
+  userStore.setUser(data)
+
+
+
 }
 
 const loginTitle = computed(() => passwdLogin.value ? '密码' : '验证码')

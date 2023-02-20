@@ -10,4 +10,5 @@ export interface User {
   mobile: string
   /** 头像 */
   avatar: string
+  refreshToken: string
 }
