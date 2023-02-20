@@ -12,7 +12,7 @@ export default defineConfig({
     vue(),
     vueJsx(),
     Components({
-      // dts: false,
+      dts: false,
       resolvers: [VantResolver({ importStyle: true })]
     })
   ],
